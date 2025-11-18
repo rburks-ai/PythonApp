@@ -199,7 +199,7 @@ def display_full_recipe(meal):
 def main():
     # Header
     st.markdown("""
-    <div style='text-align: center; padding: 2rem; background: linear-gradient(180deg, red, yellow); 
+    <div style='text-align: center; padding: 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
                 border-radius: 10px; margin-bottom: 2rem;'>
         <h1 style='color: white; margin: 0;'>🍳 Recipe Finder</h1>
         <p style='color: white; margin: 0.5rem 0 0 0;'>Discover delicious recipes from around the world!</p>
