@@ -1,0 +1,303 @@
+// ==================== index.html ====================
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nearby Sporting Events</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        .filters {
+            padding: 30px 40px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+        }
+        .filter-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #495057;
+        }
+        select, input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 30px 40px;
+            background: #f8f9fa;
+        }
+        .metric-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .metric-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        .metric-label {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        .events {
+            padding: 40px;
+        }
+        .event-card {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+        .event-card:hover {
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        .event-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+        .event-title {
+            font-size: 1.5em;
+            color: #212529;
+            margin-bottom: 5px;
+        }
+        .event-sport {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        .event-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .event-detail {
+            color: #495057;
+        }
+        .event-detail strong {
+            color: #212529;
+        }
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .no-results {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏟️ Nearby Sporting Events</h1>
+            <p>Discover exciting sporting events happening near you!</p>
+        </div>
+
+        <div class="filters">
+            <div class="filter-group">
+                <label for="sportFilter">Filter by Sport:</label>
+                <select id="sportFilter">
+                    <option value="all">All Sports</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="distanceFilter">Maximum Distance: <span id="distanceValue">10</span> miles</label>
+                <input type="range" id="distanceFilter" min="0.5" max="15" step="0.5" value="10">
+            </div>
+            <div class="filter-group">
+                <label for="maxPriceFilter">Maximum Price: $<span id="priceValue">150</span></label>
+                <input type="range" id="maxPriceFilter" min="15" max="150" step="5" value="150">
+            </div>
+        </div>
+
+        <div class="metrics" id="metrics"></div>
+        <div class="events" id="events"></div>
+    </div>
+
+    <script>
+        // Generate fake events
+        function generateEvents() {
+            const sports = ["Basketball", "Soccer", "Baseball", "Hockey", "Football", "Tennis", "Volleyball"];
+            const venues = ["Downtown Arena", "City Stadium", "Olympic Park", "Central Sports Complex", 
+                          "Riverside Field", "Metro Dome", "Championship Court"];
+            const teams = ["Tigers", "Eagles", "Warriors", "Knights", "Dragons", "Sharks", "Phoenix"];
+            
+            const events = [];
+            
+            for (let i = 0; i < 20; i++) {
+                const sport = sports[Math.floor(Math.random() * sports.length)];
+                const team1 = teams[Math.floor(Math.random() * teams.length)];
+                let team2 = teams[Math.floor(Math.random() * teams.length)];
+                while (team2 === team1) {
+                    team2 = teams[Math.floor(Math.random() * teams.length)];
+                }
+                
+                const date = new Date();
+                date.setDate(date.getDate() + Math.floor(Math.random() * 30));
+                
+                events.push({
+                    id: i + 1,
+                    sport: sport,
+                    title: `${team1} vs ${team2}`,
+                    venue: venues[Math.floor(Math.random() * venues.length)],
+                    date: date.toLocaleDateString(),
+                    time: `${Math.floor(Math.random() * 11) + 10}:${Math.random() > 0.5 ? '00' : '30'}`,
+                    price: Math.floor(Math.random() * 136) + 15,
+                    distance: Math.round((Math.random() * 14.5 + 0.5) * 10) / 10,
+                    seats: Math.floor(Math.random() * 4950) + 50
+                });
+            }
+            
+            return events.sort((a, b) => a.distance - b.distance);
+        }
+
+        const allEvents = generateEvents();
+        
+        // Populate sport filter
+        const sportFilter = document.getElementById('sportFilter');
+        const uniqueSports = [...new Set(allEvents.map(e => e.sport))].sort();
+        uniqueSports.forEach(sport => {
+            const option = document.createElement('option');
+            option.value = sport;
+            option.textContent = sport;
+            sportFilter.appendChild(option);
+        });
+
+        // Update displays
+        function updateDisplay() {
+            const selectedSport = sportFilter.value;
+            const maxDistance = parseFloat(document.getElementById('distanceFilter').value);
+            const maxPrice = parseInt(document.getElementById('maxPriceFilter').value);
+            
+            document.getElementById('distanceValue').textContent = maxDistance;
+            document.getElementById('priceValue').textContent = maxPrice;
+            
+            const filtered = allEvents.filter(e => 
+                (selectedSport === 'all' || e.sport === selectedSport) &&
+                e.distance <= maxDistance &&
+                e.price <= maxPrice
+            );
+            
+            // Update metrics
+            const metricsHTML = `
+                <div class="metric-card">
+                    <div class="metric-value">${filtered.length}</div>
+                    <div class="metric-label">Total Events</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">${filtered.length > 0 ? filtered[0].distance + ' mi' : 'N/A'}</div>
+                    <div class="metric-label">Closest Event</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">${new Set(filtered.map(e => e.sport)).size}</div>
+                    <div class="metric-label">Sports Available</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">$${filtered.length > 0 ? Math.round(filtered.reduce((sum, e) => sum + e.price, 0) / filtered.length) : 'N/A'}</div>
+                    <div class="metric-label">Avg Price</div>
+                </div>
+            `;
+            document.getElementById('metrics').innerHTML = metricsHTML;
+            
+            // Update events
+            const eventsContainer = document.getElementById('events');
+            if (filtered.length === 0) {
+                eventsContainer.innerHTML = '<div class="no-results"><h2>No events found</h2><p>Try adjusting your filters</p></div>';
+                return;
+            }
+            
+            eventsContainer.innerHTML = filtered.map(event => `
+                <div class="event-card">
+                    <div class="event-header">
+                        <div>
+                            <span class="event-sport">${event.sport}</span>
+                            <div class="event-title">${event.title}</div>
+                        </div>
+                        <button class="btn" onclick="alert('Booking ${event.title}...')">Book Now</button>
+                    </div>
+                    <div class="event-details">
+                        <div class="event-detail">📍 <strong>Venue:</strong> ${event.venue}</div>
+                        <div class="event-detail">📅 <strong>Date:</strong> ${event.date} at ${event.time}</div>
+                        <div class="event-detail">💵 <strong>Price:</strong> $${event.price}</div>
+                        <div class="event-detail">📏 <strong>Distance:</strong> ${event.distance} miles</div>
+                        <div class="event-detail">🎫 <strong>Seats:</strong> ${event.seats.toLocaleString()}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Event listeners
+        sportFilter.addEventListener('change', updateDisplay);
+        document.getElementById('distanceFilter').addEventListener('input', updateDisplay);
+        document.getElementById('maxPriceFilter').addEventListener('input', updateDisplay);
+
+        // Initial display
+        updateDisplay();
+    </script>
+</body>
+</html>
+
+
