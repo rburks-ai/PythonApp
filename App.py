@@ -1,245 +1,327 @@
+import streamlit as st
 import requests
-import json
-from IPython.display import display, HTML, Image
+from PIL import Image
 from io import BytesIO
 
-def display_header():
-    """Display app header"""
-    header_html = """
-    <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                padding: 30px; border-radius: 10px; margin-bottom: 20px;'>
-        <h1 style='color: white; text-align: center; margin: 0;'>
-            🍳 Recipe Finder App
-        </h1>
-        <p style='color: white; text-align: center; margin: 10px 0 0 0;'>
-            Discover delicious recipes using TheMealDB API
-        </p>
-    </div>
-    """
-    display(HTML(header_html))
+# Page configuration
+st.set_page_config(
+    page_title="Recipe Finder",
+    page_icon="🍳",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
+# Custom CSS
+st.markdown("""
+    <style>
+    .main {
+        padding-top: 2rem;
+    }
+    .stButton>button {
+        width: 100%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 10px;
+        font-weight: bold;
+    }
+    .stButton>button:hover {
+        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    }
+    div[data-testid="stMetricValue"] {
+        font-size: 28px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+# Initialize session state
+if 'current_view' not in st.session_state:
+    st.session_state.current_view = 'search'
+if 'selected_recipe' not in st.session_state:
+    st.session_state.selected_recipe = None
+
+# API Functions
+@st.cache_data(ttl=3600)
 def search_by_name(meal_name):
     """Search for recipes by meal name"""
     url = f"https://www.themealdb.com/api/json/v1/1/search.php?s={meal_name}"
-    
     try:
         response = requests.get(url)
         response.raise_for_status()
         data = response.json()
         return data.get('meals', [])
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Error fetching data: {e}")
+    except:
         return None
 
+@st.cache_data(ttl=3600)
 def search_by_ingredient(ingredient):
     """Search for recipes by main ingredient"""
     url = f"https://www.themealdb.com/api/json/v1/1/filter.php?i={ingredient}"
-    
     try:
         response = requests.get(url)
         response.raise_for_status()
         data = response.json()
         return data.get('meals', [])
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Error fetching data: {e}")
+    except:
         return None
 
+@st.cache_data(ttl=3600)
 def search_by_category(category):
     """Search for recipes by category"""
     url = f"https://www.themealdb.com/api/json/v1/1/filter.php?c={category}"
-    
     try:
         response = requests.get(url)
         response.raise_for_status()
         data = response.json()
         return data.get('meals', [])
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Error fetching data: {e}")
+    except:
         return None
 
+@st.cache_data(ttl=3600)
 def get_recipe_details(meal_id):
     """Get full recipe details by ID"""
     url = f"https://www.themealdb.com/api/json/v1/1/lookup.php?i={meal_id}"
-    
     try:
         response = requests.get(url)
         response.raise_for_status()
         data = response.json()
-        print(data)
         return data.get('meals', [None])[0]
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Error fetching recipe details: {e}")
+    except:
         return None
 
+@st.cache_data(ttl=3600)
 def get_random_recipe():
     """Get a random recipe"""
     url = "https://www.themealdb.com/api/json/v1/1/random.php"
-    
     try:
         response = requests.get(url)
         response.raise_for_status()
         data = response.json()
         return data.get('meals', [None])[0]
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Error fetching random recipe: {e}")
+    except:
         return None
 
-def display_recipe_card(meal):
-    """Display a simple recipe card"""
-    if not meal:
-        return
+@st.cache_data(ttl=3600)
+def get_all_categories():
+    """Get all available categories"""
+    url = "https://www.themealdb.com/api/json/v1/1/categories.php"
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        data = response.json()
+        return [cat['strCategory'] for cat in data.get('categories', [])]
+    except:
+        return ["Seafood", "Beef", "Chicken", "Dessert", "Vegetarian", "Pasta", "Lamb"]
+
+def display_recipe_card(meal, show_details_button=True):
+    """Display a recipe card"""
+    col1, col2 = st.columns([1, 2])
     
-    card_html = f"""
-    <div style='border: 2px solid #e9ecef; border-radius: 10px; padding: 20px; 
-                margin: 10px 0; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.1);'>
-        <div style='display: flex; gap: 20px;'>
-            <div>
-                <img src='{meal.get("strMealThumb", "")}' 
-                     style='width: 150px; height: 150px; border-radius: 10px; object-fit: cover;'>
-            </div>
-            <div style='flex: 1;'>
-                <h3 style='color: #667eea; margin: 0 0 10px 0;'>{meal.get('strMeal', 'Unknown')}</h3>
-                <p style='margin: 5px 0;'><strong>Category:</strong> {meal.get('strCategory', 'N/A')}</p>
-                <p style='margin: 5px 0;'><strong>Cuisine:</strong> {meal.get('strArea', 'N/A')}</p>
-                <p style='margin: 5px 0;'><strong>ID:</strong> {meal.get('idMeal', 'N/A')}</p>
-            </div>
-        </div>
-    </div>
-    """
-    display(HTML(card_html))
+    with col1:
+        try:
+            response = requests.get(meal.get("strMealThumb", ""))
+            img = Image.open(BytesIO(response.content))
+            st.image(img, use_container_width=True)
+        except:
+            st.image("https://via.placeholder.com/300x300?text=No+Image", use_container_width=True)
+    
+    with col2:
+        st.subheader(meal.get('strMeal', 'Unknown'))
+        st.write(f"**Category:** {meal.get('strCategory', 'N/A')}")
+        st.write(f"**Cuisine:** {meal.get('strArea', 'N/A')}")
+        
+        if show_details_button:
+            if st.button(f"View Full Recipe 👉", key=f"btn_{meal.get('idMeal')}"):
+                st.session_state.selected_recipe = meal.get('idMeal')
+                st.session_state.current_view = 'details'
+                st.rerun()
 
 def display_full_recipe(meal):
-    """Display complete recipe with instructions and ingredients"""
+    """Display complete recipe with all details"""
     if not meal:
-        print("❌ Recipe not found")
+        st.error("Recipe not found")
         return
     
-    # Gather ingredients
-    ingredients = []
-    for i in range(1, 21):
-        ingredient = meal.get(f'strIngredient{i}', '')
-        measure = meal.get(f'strMeasure{i}', '')
-        if ingredient and ingredient.strip():
-            ingredients.append(f"{measure} {ingredient}")
+    # Back button
+    if st.button("← Back to Search"):
+        st.session_state.current_view = 'search'
+        st.session_state.selected_recipe = None
+        st.rerun()
     
-    ingredients_html = "<ul>" + "".join([f"<li>{ing}</li>" for ing in ingredients]) + "</ul>"
+    st.title(meal.get('strMeal', 'Unknown Recipe'))
     
-    recipe_html = f"""
-    <div style='border: 3px solid #667eea; border-radius: 15px; padding: 30px; 
-                margin: 20px 0; background: #f8f9fa;'>
-        <h2 style='color: #667eea; text-align: center; margin-bottom: 20px;'>
-            {meal.get('strMeal', 'Unknown Recipe')}
-        </h2>
+    # Image
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        try:
+            response = requests.get(meal.get("strMealThumb", ""))
+            img = Image.open(BytesIO(response.content))
+            st.image(img, use_container_width=True)
+        except:
+            st.image("https://via.placeholder.com/400x400?text=No+Image", use_container_width=True)
+    
+    with col2:
+        st.subheader("Recipe Info")
+        st.write(f"**📁 Category:** {meal.get('strCategory', 'N/A')}")
+        st.write(f"**🌍 Cuisine:** {meal.get('strArea', 'N/A')}")
+        st.write(f"**🔖 Tags:** {meal.get('strTags', 'None')}")
         
-        <div style='text-align: center; margin-bottom: 20px;'>
-            <img src='{meal.get("strMealThumb", "")}' 
-                 style='max-width: 400px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);'>
-        </div>
+        if meal.get('strYoutube'):
+            st.markdown(f"**📺 [Watch Video Tutorial]({meal.get('strYoutube')})**")
         
-        <div style='display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;'>
-            <div style='background: blue; padding: 15px; border-radius: 10px;'>
-                <p><strong>📁 Category:</strong> {meal.get('strCategory', 'N/A')}</p>
-                <p><strong>🌍 Cuisine:</strong> {meal.get('strArea', 'N/A')}</p>
-            </div>
-            <div style='background: blue; padding: 15px; border-radius: 10px;'>
-                <p><strong>🔖 Tags:</strong> {meal.get('strTags', 'None')}</p>
-                <p><strong>📺 Video:</strong> <a href='{meal.get('strYoutube', '#')}' target='_blank'>Watch</a></p>
-            </div>
-        </div>
+        if meal.get('strSource'):
+            st.markdown(f"**🔗 [Original Source]({meal.get('strSource')})**")
+    
+    st.divider()
+    
+    # Ingredients
+    col1, col2 = st.columns([1, 2])
+    
+    with col1:
+        st.subheader("🛒 Ingredients")
+        ingredients = []
+        for i in range(1, 21):
+            ingredient = meal.get(f'strIngredient{i}', '')
+            measure = meal.get(f'strMeasure{i}', '')
+            if ingredient and ingredient.strip():
+                ingredients.append(f"{measure} {ingredient}")
         
-        <div style='background: blue; padding: 20px; border-radius: 10px; margin-bottom: 20px;'>
-            <h3 style='color: #667eea;'>🛒 Ingredients</h3>
-            {ingredients_html}
-        </div>
-        
-        <div style='background: blue; padding: 20px; border-radius: 10px;'>
-            <h3 style='color: #667eea;'>👨‍🍳 Instructions</h3>
-            <p style='line-height: 1.8; blue-space: pre-wrap;'>{meal.get('strInstructions', 'No instructions available')}</p>
-        </div>
-    </div>
-    """
-    display(HTML(recipe_html))
+        for ing in ingredients:
+            st.write(f"• {ing}")
+    
+    with col2:
+        st.subheader("👨‍🍳 Instructions")
+        instructions = meal.get('strInstructions', 'No instructions available')
+        st.write(instructions)
 
-def main_menu():
-    """Display main menu and handle user choices"""
-    display_header()
+# Main App
+def main():
+    # Header
+    st.markdown("""
+    <div style='text-align: center; padding: 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                border-radius: 10px; margin-bottom: 2rem;'>
+        <h1 style='color: white; margin: 0;'>🍳 Recipe Finder</h1>
+        <p style='color: white; margin: 0.5rem 0 0 0;'>Discover delicious recipes from around the world!</p>
+    </div>
+    """, unsafe_allow_html=True)
     
-    print("\n" + "="*60)
-    print("           RECIPE FINDER - MAIN MENU")
-    print("="*60)
-    print("\n1. 🔍 Search by Recipe Name")
-    print("2. 🥕 Search by Ingredient")
-    print("3. 📁 Search by Category")
-    print("4. 🎲 Get Random Recipe")
-    print("5. 🆔 Get Recipe by ID")
-    print("6. ❌ Exit")
-    print("\n" + "="*60)
+    # Show recipe details if selected
+    if st.session_state.current_view == 'details' and st.session_state.selected_recipe:
+        recipe = get_recipe_details(st.session_state.selected_recipe)
+        display_full_recipe(recipe)
+        return
     
-    choice = input("\nEnter your choice (1-6): ").strip()
+    # Sidebar
+    with st.sidebar:
+        st.header("🔍 Search Options")
+        
+        search_type = st.radio(
+            "Search by:",
+            ["Recipe Name", "Ingredient", "Category", "Random Recipe"],
+            help="Choose how you want to search for recipes"
+        )
+        
+        st.divider()
+        
+        results = None
+        
+        if search_type == "Recipe Name":
+            st.subheader("Search by Name")
+            meal_name = st.text_input("Enter recipe name:", placeholder="e.g., chicken curry, pasta")
+            if st.button("🔍 Search", key="search_name"):
+                if meal_name:
+                    with st.spinner("Searching..."):
+                        results = search_by_name(meal_name)
+                        st.session_state.search_results = results
+                else:
+                    st.warning("Please enter a recipe name")
+        
+        elif search_type == "Ingredient":
+            st.subheader("Search by Ingredient")
+            ingredient = st.text_input("Enter ingredient:", placeholder="e.g., chicken, beef, rice")
+            if st.button("🔍 Search", key="search_ingredient"):
+                if ingredient:
+                    with st.spinner("Searching..."):
+                        results = search_by_ingredient(ingredient)
+                        st.session_state.search_results = results
+                else:
+                    st.warning("Please enter an ingredient")
+        
+        elif search_type == "Category":
+            st.subheader("Search by Category")
+            categories = get_all_categories()
+            category = st.selectbox("Select category:", categories)
+            if st.button("🔍 Search", key="search_category"):
+                with st.spinner("Searching..."):
+                    results = search_by_category(category)
+                    st.session_state.search_results = results
+        
+        elif search_type == "Random Recipe":
+            st.subheader("Get Random Recipe")
+            st.info("Click below to get a surprise recipe!")
+            if st.button("🎲 Get Random Recipe", key="random"):
+                with st.spinner("Finding a recipe..."):
+                    random_recipe = get_random_recipe()
+                    if random_recipe:
+                        st.session_state.selected_recipe = random_recipe.get('idMeal')
+                        st.session_state.current_view = 'details'
+                        st.rerun()
+        
+        st.divider()
+        st.caption("Powered by TheMealDB API")
     
-    if choice == '1':
-        meal_name = input("\n🔍 Enter recipe name (e.g., 'chicken', 'pasta'): ").strip()
-        meals = search_by_name(meal_name)
-        if meals:
-            print(f"\n✅ Found {len(meals)} recipe(s):\n")
-            for meal in meals:
+    # Main content area
+    if 'search_results' in st.session_state and st.session_state.search_results:
+        results = st.session_state.search_results
+        
+        # Metrics
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Total Recipes", len(results))
+        with col2:
+            categories = set(r.get('strCategory', 'N/A') for r in results if r.get('strCategory'))
+            st.metric("Categories", len(categories))
+        with col3:
+            cuisines = set(r.get('strArea', 'N/A') for r in results if r.get('strArea'))
+            st.metric("Cuisines", len(cuisines))
+        
+        st.divider()
+        
+        # Display results
+        st.subheader(f"Found {len(results)} Recipe(s)")
+        
+        for meal in results:
+            with st.container():
                 display_recipe_card(meal)
-            
-            # Ask if user wants details
-            show_details = input("\n📖 Enter a recipe ID to see full details (or press Enter to skip): ").strip()
-            if show_details:
-                recipe = get_recipe_details(show_details)
-                display_full_recipe(recipe)
-        else:
-            print("\n❌ No recipes found. Try a different search term.")
+                st.divider()
     
-    elif choice == '2':
-        ingredient = input("\n🥕 Enter ingredient (e.g., 'chicken', 'beef', 'rice'): ").strip()
-        meals = search_by_ingredient(ingredient)
-        if meals:
-            print(f"\n✅ Found {len(meals)} recipe(s) with {ingredient}:\n")
-            for meal in meals[:10]:  # Show first 10
-                display_recipe_card(meal)
-        else:
-            print("\n❌ No recipes found with that ingredient.")
-    
-    elif choice == '3':
-        print("\n📁 Popular Categories: Seafood, Beef, Chicken, Dessert, Vegetarian, Pasta")
-        category = input("Enter category: ").strip()
-        meals = search_by_category(category)
-        if meals:
-            print(f"\n✅ Found {len(meals)} recipe(s) in {category}:\n")
-            for meal in meals[:10]:  # Show first 10
-                display_recipe_card(meal)
-        else:
-            print("\n❌ No recipes found in that category.")
-    
-    elif choice == '4':
-        print("\n🎲 Getting a random recipe...\n")
-        meal = get_random_recipe()
-        if meal:
-            display_full_recipe(meal)
-        else:
-            print("❌ Could not fetch random recipe.")
-    
-    elif choice == '5':
-        meal_id = input("\n🆔 Enter recipe ID: ").strip()
-        meal = get_recipe_details(meal_id)
-        display_full_recipe(meal)
-    
-    elif choice == '6':
-        print("\n👋 Thanks for using Recipe Finder! Goodbye!\n")
-        return False
+    elif 'search_results' in st.session_state and st.session_state.search_results is not None:
+        st.info("No recipes found. Try a different search term!")
     
     else:
-        print("\n❌ Invalid choice. Please enter 1-6.")
-    
-    # Ask to continue
-    continue_choice = input("\n🔄 Search again? (y/n): ").strip().lower()
-    return continue_choice == 'y'
+        # Welcome message
+        st.markdown("""
+        ### Welcome to Recipe Finder! 👋
+        
+        Use the sidebar to start searching for delicious recipes:
+        
+        - 🔍 **Search by Name** - Find specific recipes like "chicken curry" or "chocolate cake"
+        - 🥕 **Search by Ingredient** - Discover recipes using ingredients you have
+        - 📁 **Search by Category** - Browse recipes by type (Seafood, Dessert, etc.)
+        - 🎲 **Random Recipe** - Get surprise recipe suggestions
+        
+        Start exploring and happy cooking! 🍳
+        """)
+        
+        # Show some example images
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.image("https://www.themealdb.com/images/media/meals/llcbn01574260722.jpg", caption="Delicious Recipes")
+        with col2:
+            st.image("https://www.themealdb.com/images/media/meals/wvpsxx1468256321.jpg", caption="From Around the World")
+        with col3:
+            st.image("https://www.themealdb.com/images/media/meals/ytpstt1511814614.jpg", caption="Easy to Make")
 
-# Run the app
 if __name__ == "__main__":
-    while True:
-        if not main_menu():
-            break
+    main()
